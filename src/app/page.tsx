@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, Clock, MapPin, Plane } from "lucide-react";
 import { StayPicker } from "@/components/booking/stay-picker";
@@ -6,12 +6,31 @@ import { BookCta, FacilityGrid, FaqList, RoomTile, SectionHeading } from "@/comp
 import { hotel, travelPackage } from "@content/hotel";
 import { rooms } from "@content/rooms";
 
+const heroAlt = "The Flyers Hotel building in Keflavík at blue hour, its windows lit warm beneath the FLYERS sign";
+
+function HeroImage() {
+  const common = { alt: heroAlt, fill: true, priority: true, sizes: "100vw", quality: 85 };
+  const {
+    props: { srcSet: mobile },
+  } = getImageProps({ ...common, src: "/images/hero-building-mobile.jpg" });
+  const { props: desktop } = getImageProps({ ...common, src: "/images/hero-building-desktop.jpg" });
+  return (
+    <picture>
+      <source media="(max-width: 639px)" srcSet={mobile} />
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- alt is set via getImageProps */}
+      <img {...desktop} className="-z-10 object-cover object-[50%_40%] sm:object-right" />
+    </picture>
+  );
+}
+
 export default function Home() {
   return (
     <>
       <section className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-basalt">
-        <Image src="/images/hero.jpg" alt="Flyers Hotel at blue hour with the northern lights over the Reykjanes lava fields" fill priority sizes="100vw" className="-z-10 object-cover object-[72%_center] sm:object-center" />
+        <HeroImage />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-basalt via-basalt/30 to-basalt/40" />
+        <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-basalt/60 via-basalt/20 via-45% to-transparent to-65% sm:block" />
+        <div className="absolute inset-0 -z-10 bg-basalt/25 sm:hidden" />
         <div className="container-x pt-32 pb-14 sm:pb-20">
           <p className="eyebrow text-ember-soft">Keflavík · Reykjanes Peninsula · Iceland</p>
           <h1 className="mt-5 max-w-3xl text-[3.2rem] leading-[0.98] text-stone sm:text-7xl lg:text-[5.5rem]">
