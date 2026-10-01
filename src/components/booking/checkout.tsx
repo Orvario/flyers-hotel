@@ -130,7 +130,7 @@ export function Checkout() {
           </p>
         </div>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <div className="lg:sticky lg:top-28 lg:space-y-5">
             <Summary stay={stay} room={room} rateId={rateId} state={state} extras={extras} compact />
 

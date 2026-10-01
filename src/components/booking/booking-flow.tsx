@@ -467,7 +467,6 @@ function ExtrasStep({
           <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
             {shuttle.details.map((d) => <li key={d} className="flex gap-2"><span className="mt-2 size-1 shrink-0 rounded-full bg-ember" />{d}</li>)}
           </ul>
-          <p className="mt-4 text-xs text-muted-foreground">We’ll remind you on your confirmation page.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6">
           <BedDouble className="size-5 text-ember" />
