@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { validateStay } from "@/lib/booking";
 import { getAvailability } from "@/lib/godo-server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const parsed = validateStay({

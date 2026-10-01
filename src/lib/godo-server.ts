@@ -14,7 +14,8 @@ type GodoPriceRow = {
 
 type Beds24Availability = Record<string, { roomId?: string; roomsavail?: number } | unknown>;
 
-const TIMEOUT_MS = 8000;
+// Both upstream calls run in parallel; keep well under the 10 s limit for synchronous serverless functions.
+const TIMEOUT_MS = 6000;
 
 async function fetchWithTimeout(url: string, init: RequestInit) {
   const ctrl = new AbortController();

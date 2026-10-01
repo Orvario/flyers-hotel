@@ -20,6 +20,22 @@ npm start          # http://localhost:4317
 
 No API keys or environment variables are needed. Live prices come from Godo's public endpoints (see below).
 
+## Deploy to Netlify
+
+`netlify.toml` already contains the build settings, the Node version (22) and Netlify's Next.js Runtime (`@netlify/plugin-nextjs`). Pages are served from the CDN, and `/api/availability` runs as a serverless function.
+
+1. Push the repo to GitHub, GitLab or Bitbucket.
+2. In Netlify, choose **Add new site → Import an existing project** and select the repo and branch.
+3. Leave the build settings as Netlify reads them from `netlify.toml`: build command `npm run build`, publish directory `.next`.
+4. Deploy. No environment variables are required.
+
+To check a build locally without logging in or deploying:
+
+```bash
+npx netlify-cli build --offline
+npx netlify-cli serve --offline --port 8899   # runs the built site and functions locally
+```
+
 ## How booking works
 
 1. **Dates and guests**: from the hero, a room page, or `/book`.
