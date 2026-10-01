@@ -80,7 +80,10 @@ export function Checkout() {
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_360px] lg:gap-12">
         <div className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-stone/70 px-5 py-3.5 text-sm">
-            <span className="flex items-center gap-2"><ShieldCheck className="size-4 text-ember" /> Encrypted payment by <strong className="font-semibold">Godo</strong>, Flyers Hotel’s official booking partner. Your room, dates and total are already filled in.</span>
+            <span className="flex items-start gap-2">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-ember" />
+              <span>Encrypted payment by <strong className="font-semibold">Godo</strong>, Flyers Hotel’s official booking partner. Your room, dates and total are already filled in.</span>
+            </span>
             <a href={godoUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-basalt hover:underline">
               Open in a new tab <ExternalLink className="size-3" />
             </a>

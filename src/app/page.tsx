@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <>
       <section className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-basalt">
-        <Image src="/images/hero.jpg" alt="Flyers Hotel at blue hour with the northern lights over the Reykjanes lava fields" fill priority sizes="100vw" className="-z-10 object-cover" />
+        <Image src="/images/hero.jpg" alt="Flyers Hotel at blue hour with the northern lights over the Reykjanes lava fields" fill priority sizes="100vw" className="-z-10 object-cover object-[72%_center] sm:object-center" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-basalt via-basalt/30 to-basalt/40" />
         <div className="container-x pt-32 pb-14 sm:pb-20">
           <p className="eyebrow text-ember-soft">Keflavík · Reykjanes Peninsula · Iceland</p>

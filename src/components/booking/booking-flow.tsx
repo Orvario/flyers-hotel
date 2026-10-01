@@ -287,21 +287,21 @@ function RoomList({ data, selected, preferred, onSelect, onEditDates }: { data: 
         <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-emerald-500" /></span>
         Live prices from our booking system · checked {format(new Date(data.fetchedAt), "HH:mm")} · total for {data.nights} night{data.nights > 1 ? "s" : ""}, VAT & city tax included
       </p>
-      {sorted.map((q) => {
+      {sorted.map((q, i) => {
         const room = getRoomByGodoId(q.godoRoomId);
         if (!room) return null;
-        return <RoomCard key={room.slug} room={room} quote={q} nights={data.nights} selected={selected?.slug === room.slug ? selected.rateId : undefined} onSelect={(id) => onSelect(room.slug, id)} />;
+        return <RoomCard key={room.slug} priority={i === 0} room={room} quote={q} nights={data.nights} selected={selected?.slug === room.slug ? selected.rateId : undefined} onSelect={(id) => onSelect(room.slug, id)} />;
       })}
     </div>
   );
 }
 
-function RoomCard({ room, quote, nights, selected, onSelect }: { room: Room; quote: RoomQuote; nights: number; selected?: RateId; onSelect: (id: RateId) => void }) {
+function RoomCard({ room, quote, nights, selected, onSelect, priority }: { priority?: boolean; room: Room; quote: RoomQuote; nights: number; selected?: RateId; onSelect: (id: RateId) => void }) {
   const rates = quote.rates.filter((r) => r.available);
   return (
     <article className={cn("grid gap-5 rounded-2xl border bg-card p-4 transition-shadow sm:grid-cols-[240px_1fr] sm:p-5", quote.available ? "border-border hover:shadow-lg hover:shadow-basalt/5" : "border-border/60 opacity-70")}>
       <div className="relative aspect-[4/3] overflow-hidden rounded-xl sm:aspect-auto sm:min-h-52">
-        <Image src={room.images[0]} alt={room.name} fill sizes="(min-width: 640px) 240px, 100vw" className="object-cover" />
+        <Image src={room.images[0]} alt={room.name} fill priority={priority} sizes="(min-width: 640px) 240px, 100vw" className="object-cover" />
         {quote.unitsLeft !== null && quote.available && quote.unitsLeft <= 2 && (
           <span className="absolute top-3 left-3 rounded-full bg-basalt/85 px-3 py-1 text-[0.7rem] text-stone backdrop-blur">
             {quote.unitsLeft === 1 ? "Last room" : `${quote.unitsLeft} rooms left`}

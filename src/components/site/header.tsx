@@ -21,7 +21,7 @@ export function Wordmark({ light }: { light?: boolean }) {
   return (
     <span className={cn("flex flex-col leading-none", light ? "text-stone" : "text-basalt")}>
       <span className="font-serif text-[1.65rem] font-medium tracking-tight">Flyers</span>
-      <span className={cn("mt-1 text-[0.55rem] tracking-[0.32em] uppercase", light ? "text-stone/70" : "text-basalt/60")}>
+      <span className={cn("mt-1 text-[0.55rem] tracking-[0.32em] whitespace-nowrap uppercase", light ? "text-stone/70" : "text-basalt/60")}>
         Keflavík Airport Hotel
       </span>
     </span>
@@ -86,11 +86,12 @@ export function SiteHeader() {
             <Link
               href="/book"
               className={cn(
-                "inline-flex h-10 items-center rounded-full px-5 text-[0.8rem] font-medium tracking-wide transition-colors",
+                "inline-flex h-10 items-center rounded-full px-4 text-[0.8rem] font-medium tracking-wide whitespace-nowrap transition-colors sm:px-5",
                 transparent ? "bg-stone text-basalt hover:bg-white" : "bg-basalt text-stone hover:bg-basalt-soft",
               )}
             >
-              Book your stay
+              <span className="sm:hidden">Book</span>
+              <span className="hidden sm:inline">Book your stay</span>
             </Link>
           )}
           <Sheet open={open} onOpenChange={setOpen}>
