@@ -1,0 +1,32 @@
+<script>
+  (function () {
+    var embedded;
+    try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+    if (!embedded) return;
+    document.documentElement.className += " flyers-embed";
+
+    // html and body stretch to the iframe height, so measure Godo's content container instead.
+    var last = 0;
+    function contentHeight() {
+      var page = document.getElementById("bookingpage");
+      if (!page) return document.body.offsetHeight;
+      return Math.ceil(page.getBoundingClientRect().bottom + window.scrollY) + 32;
+    }
+    function report() {
+      var h = contentHeight();
+      if (Math.abs(h - last) < 4) return;
+      last = h;
+      window.parent.postMessage({ type: "flyers:godo-height", height: h }, "*");
+    }
+    function start() {
+      report();
+      var page = document.getElementById("bookingpage");
+      if (window.ResizeObserver && page) new ResizeObserver(report).observe(page);
+      else setInterval(report, 1000);
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+    else start();
+    window.addEventListener("load", report);
+    window.addEventListener("resize", report);
+  })();
+</script>

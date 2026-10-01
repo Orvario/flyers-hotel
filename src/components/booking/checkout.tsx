@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowLeft, Check, Copy, ExternalLink, Lock, Mail, Phone, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildGodoCheckoutUrl, validateStay } from "@/lib/booking";
-import { getRatePlan, type RateId } from "@content/godo";
+import { cn } from "@/lib/utils";
+import { buildGodoCheckoutUrl, formatMoney, nightsBetween, parseISODate, validateStay } from "@/lib/booking";
+import { format } from "date-fns";
+import { getRatePlan, godo, type RateId } from "@content/godo";
 import { getRoom } from "@content/rooms";
 import { hotel, shuttle, travelPackage } from "@content/hotel";
 import { StepIndicator } from "./steps";
@@ -15,6 +17,8 @@ import { useAvailability } from "./use-availability";
 import { childSeatLabels, useExtras } from "./extras-store";
 
 const LOAD_TIMEOUT_MS = 15000;
+const GODO_ORIGIN = new URL(godo.bookingUrl).origin;
+const HEIGHT_MESSAGE = "flyers:godo-height";
 
 export function Checkout() {
   const sp = useSearchParams();
@@ -27,6 +31,7 @@ export function Checkout() {
   const { extras } = useExtras();
   const [loaded, setLoaded] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  const [frameHeight, setFrameHeight] = useState<number | null>(null);
 
   const godoUrl = stay && room && plan ? buildGodoCheckoutUrl(stay, room.godoRoomId, plan.id) : null;
 
@@ -35,6 +40,17 @@ export function Checkout() {
     const t = setTimeout(() => setTimedOut(true), LOAD_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, [godoUrl]);
+
+  // Only sent once the hotel adds docs/godo/embedded-summary.html to Godo's booking page.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== GODO_ORIGIN || e.data?.type !== HEIGHT_MESSAGE) return;
+      const h = Number(e.data.height);
+      if (Number.isFinite(h) && h > 300 && h < 10000) setFrameHeight(Math.ceil(h) + 24);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   if (!stay || !room || !plan || !godoUrl) {
     return (
@@ -51,7 +67,7 @@ export function Checkout() {
 
   const quote = state.status === "ready" ? state.data.rooms.find((r) => r.godoRoomId === room.godoRoomId)?.rates.find((r) => r.rateId === rateId) : undefined;
   const soldOut = state.status === "ready" && !quote?.available;
-  const back = `/book?${new URLSearchParams({ checkin: stay.checkin, checkout: stay.checkout, adults: String(stay.adults), children: String(stay.children), room: room.slug, rate: String(rateId), step: "review" })}`;
+  const back = `/book?${new URLSearchParams({ checkin: stay.checkin, checkout: stay.checkout, adults: String(stay.adults), children: String(stay.children), room: room.slug, rate: String(rateId), step: "extras" })}`;
 
   const copyItems = plan.includesPackage
     ? [
@@ -71,10 +87,10 @@ export function Checkout() {
     <div className="container-x pt-28 pb-24 lg:pt-32">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Link href={back} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-basalt"><ArrowLeft className="size-4" /> Back to review</Link>
+          <Link href={back} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-basalt"><ArrowLeft className="size-4" /> Back to extras</Link>
           <h1 className="mt-3 flex items-center gap-3 text-4xl text-basalt sm:text-5xl"><Lock className="size-7 text-ember" /> Secure payment</h1>
         </div>
-        <StepIndicator current={4} />
+        <StepIndicator current={3} />
       </div>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_360px] lg:gap-12">
@@ -92,9 +108,19 @@ export function Checkout() {
           {soldOut && (
             <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
               <span className="flex items-center gap-2 text-destructive"><AlertCircle className="size-4" /> This room and rate is no longer available for your dates.</span>
-              <Link href={back.replace("step=review", "step=room")} className="font-medium underline">Choose another room</Link>
+              <Link href={back.replace("step=extras", "step=room")} className="font-medium underline">Choose another room</Link>
             </div>
           )}
+
+          <StayStrip
+            roomName={room.shortName}
+            checkin={stay.checkin}
+            checkout={stay.checkout}
+            guests={stay.adults + stay.children}
+            total={quote?.available ? quote.total : null}
+            loading={state.status === "loading"}
+            editHref={back}
+          />
 
           <div className="relative overflow-hidden rounded-2xl border border-border bg-[#dfddd0]">
             {!loaded && (
@@ -120,7 +146,8 @@ export function Checkout() {
               title="Secure payment – Flyers Hotel booking"
               src={godoUrl}
               onLoad={() => setLoaded(true)}
-              className="block h-[2300px] w-full border-0 sm:h-[1700px] lg:h-[1450px]"
+              className={cn("block w-full border-0", !frameHeight && "h-[2300px] sm:h-[1700px] lg:h-[1450px]")}
+              style={frameHeight ? { height: frameHeight } : undefined}
               allow="payment"
               referrerPolicy="strict-origin-when-cross-origin"
             />
@@ -188,5 +215,22 @@ function CopyRow({ label, value }: { label: string; value?: string }) {
         </button>
       )}
     </li>
+  );
+}
+
+function StayStrip({ roomName, checkin, checkout, guests, total, loading, editHref }: { roomName: string; checkin: string; checkout: string; guests: number; total: number | null; loading: boolean; editHref: string }) {
+  const nights = nightsBetween(checkin, checkout);
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-3.5 lg:hidden">
+      <div className="min-w-0 text-xs">
+        <p className="truncate font-medium">{roomName}</p>
+        <p className="text-muted-foreground">
+          {format(parseISODate(checkin), "d MMM")} – {format(parseISODate(checkout), "d MMM")} · {nights} night{nights > 1 ? "s" : ""} · {guests} guest{guests > 1 ? "s" : ""}
+          {" · "}
+          <Link href={editHref} className="underline underline-offset-2 hover:text-basalt">Change</Link>
+        </p>
+      </div>
+      {loading ? <Skeleton className="h-7 w-16" /> : total !== null && <p className="font-serif text-2xl tabular-nums">{formatMoney(total)}</p>}
+    </div>
   );
 }

@@ -33,8 +33,8 @@ import { StepIndicator } from "./steps";
 import { useAvailability } from "./use-availability";
 import { childSeatLabels, useExtras, type Extras } from "./extras-store";
 
-type Step = "dates" | "room" | "extras" | "review";
-const stepIndex: Record<Step, number> = { dates: 0, room: 1, extras: 2, review: 3 };
+type Step = "dates" | "room" | "extras";
+const stepIndex: Record<Step, number> = { dates: 0, room: 1, extras: 2 };
 
 export function BookingFlow() {
   const sp = useSearchParams();
@@ -53,12 +53,11 @@ export function BookingFlow() {
   const rateId = Number(sp.get("rate")) as RateId;
   const rate = getRatePlan(rateId);
 
-  const requested = (sp.get("step") as Step) ?? "room";
+  const requested = sp.get("step") === "review" ? "extras" : ((sp.get("step") as Step) ?? "room");
   let step: Step = requested;
   if (!stay) step = "dates";
-  else if ((step === "extras" || step === "review") && (!room || !rate)) step = "room";
-  else if (step === "dates") step = "dates";
-  else if (!["room", "extras", "review"].includes(step)) step = "room";
+  else if (step === "extras" && (!room || !rate)) step = "room";
+  else if (!["dates", "room", "extras"].includes(step)) step = "room";
 
   const { state, retry } = useAvailability(stay);
   const { extras, update } = useExtras();
@@ -85,7 +84,6 @@ export function BookingFlow() {
             {step === "dates" && "When are you flying?"}
             {step === "room" && "Choose your room"}
             {step === "extras" && "Make the journey easy"}
-            {step === "review" && "Review your stay"}
           </h1>
         </div>
         <StepIndicator current={stepIndex[step]} />
@@ -123,21 +121,8 @@ export function BookingFlow() {
               update={update}
               onSwitchRate={(id) => setParams({ rate: String(id) }, { scroll: false })}
               onBack={() => setParams({ step: "room" })}
-              onNext={() => setParams({ step: "review" })}
-            />
-          )}
-
-          {step === "review" && stay && room && rate && (
-            <ReviewStep
-              stay={stay}
-              room={room}
-              rateId={rate.id}
-              total={rateQuote?.available ? rateQuote.total : null}
-              loading={state.status === "loading"}
               stale={!!selectionStale}
-              extras={extras}
-              onBack={() => setParams({ step: "extras" })}
-              onChangeRoom={() => setParams({ step: "room" })}
+              canContinue={!!rateQuote?.available}
               checkoutHref={`/book/checkout?${new URLSearchParams({
                 checkin: stay.checkin,
                 checkout: stay.checkout,
@@ -148,6 +133,7 @@ export function BookingFlow() {
               })}`}
             />
           )}
+
         </div>
 
         <aside className="hidden lg:block">
@@ -374,7 +360,9 @@ function ExtrasStep({
   update,
   onSwitchRate,
   onBack,
-  onNext,
+  stale,
+  canContinue,
+  checkoutHref,
 }: {
   rateId: RateId;
   quote?: RoomQuote;
@@ -383,7 +371,9 @@ function ExtrasStep({
   update: (p: Partial<Extras>) => void;
   onSwitchRate: (id: RateId) => void;
   onBack: () => void;
-  onNext: () => void;
+  stale: boolean;
+  canContinue: boolean;
+  checkoutHref: string;
 }) {
   const plan = getRatePlan(rateId)!;
   const pkg = quote?.rates.find((r) => r.rateId === 3);
@@ -480,101 +470,29 @@ function ExtrasStep({
         </div>
       </section>
 
-      <NavRow onBack={onBack} onNext={onNext} nextLabel="Review your stay" />
-    </div>
-  );
-}
-
-function ReviewStep({
-  stay,
-  room,
-  rateId,
-  total,
-  loading,
-  stale,
-  extras,
-  onBack,
-  onChangeRoom,
-  checkoutHref,
-}: {
-  stay: StayQuery;
-  room: Room;
-  rateId: RateId;
-  total: number | null;
-  loading: boolean;
-  stale: boolean;
-  extras: Extras;
-  onBack: () => void;
-  onChangeRoom: () => void;
-  checkoutHref: string;
-}) {
-  const plan = getRatePlan(rateId)!;
-  const nights = nightsBetween(stay.checkin, stay.checkout);
-  return (
-    <div className="space-y-8">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="relative aspect-[21/9]">
-          <Image src={room.images[0]} alt={room.name} fill sizes="(min-width: 1024px) 800px, 100vw" className="object-cover" />
-        </div>
-        <dl className="grid gap-6 p-6 sm:grid-cols-2 sm:p-8">
-          <ReviewItem label="Room" value={room.name} />
-          <ReviewItem label="Rate" value={`${plan.name} — ${plan.short}`} />
-          <ReviewItem label="Check-in" value={`${format(parseISODate(stay.checkin), "EEEE d MMMM yyyy")} · from 15:00`} />
-          <ReviewItem label="Check-out" value={`${format(parseISODate(stay.checkout), "EEEE d MMMM yyyy")} · by 11:00`} />
-          <ReviewItem label="Guests" value={`${stay.adults} adult${stay.adults > 1 ? "s" : ""}${stay.children ? `, ${stay.children} child${stay.children > 1 ? "ren" : ""}` : ""}`} />
-          <ReviewItem label="Length of stay" value={`${nights} night${nights > 1 ? "s" : ""}`} />
-          {plan.includesPackage && (
-            <ReviewItem
-              label="Transfer details"
-              value={[extras.licensePlate && `Plate ${extras.licensePlate}`, extras.transferTime && `Transfer ${extras.transferTime}`, extras.flightNumber && `Return ${extras.flightNumber}`].filter(Boolean).join(" · ") || "You can add these at payment"}
-            />
-          )}
-          {extras.crib && <ReviewItem label="Requests" value="Baby crib (we’ll confirm by email)" />}
-        </dl>
-        <div className="flex flex-wrap items-end justify-between gap-4 border-t border-border bg-stone/60 px-6 py-5 sm:px-8">
-          <div>
-            <p className="eyebrow text-muted-foreground">Total to pay</p>
-            {loading ? <Skeleton className="mt-2 h-9 w-32" /> : total !== null ? <p className="font-serif text-4xl tabular-nums">{formatMoney(total)}</p> : <p className="mt-1 text-sm text-destructive">No longer available</p>}
-          </div>
-          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">VAT (11%) and city tax included. This is the live price from our booking system – the payment page shows the same total.</p>
-        </div>
-      </div>
-
       {stale && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
           <span className="flex items-center gap-2 text-destructive"><AlertCircle className="size-4" /> This room and rate just sold out for your dates.</span>
-          <button onClick={onChangeRoom} className="font-medium underline">Choose another room</button>
+          <button onClick={onBack} className="font-medium underline">Choose another room</button>
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
-        <h3 className="flex items-center gap-2 font-sans text-sm font-semibold"><ShieldCheck className="size-4 text-ember" /> What happens next</h3>
-        <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
-          <li className="flex gap-3"><span className="font-serif text-lg leading-none text-ember">1</span> You’ll see our secure payment form, run by our booking partner Godo, right here on this page – with your room, dates and total already filled in.</li>
-          <li className="flex gap-3"><span className="font-serif text-lg leading-none text-ember">2</span> Enter your name, email and card to guarantee the booking{plan.includesPackage ? ", plus your transfer details (we keep them beside the form for you)" : ""}.</li>
-          <li className="flex gap-3"><span className="font-serif text-lg leading-none text-ember">3</span> You’ll receive a confirmation email from Flyers Hotel straight away.</li>
-        </ol>
+      <div className="space-y-4 border-t border-border pt-8">
+        <p className="flex max-w-xl gap-2 text-sm leading-relaxed text-muted-foreground">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-ember" />
+          Next: add your name, email and card on our secure payment form{plan.includesPackage ? " and transfer details" : ""}. Your room, dates and total carry straight over.
+        </p>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button onClick={onBack} className="inline-flex h-12 items-center gap-2 text-sm text-muted-foreground hover:text-basalt"><ArrowLeft className="size-4" /> Back to rooms</button>
+          <Link
+            href={checkoutHref}
+            aria-disabled={stale || !canContinue}
+            className={cn("inline-flex h-14 items-center justify-center gap-3 rounded-full bg-basalt px-8 text-sm font-medium tracking-wide text-stone transition-colors hover:bg-basalt-soft", (stale || !canContinue) && "pointer-events-none opacity-40")}
+          >
+            <Lock className="size-4" /> Continue to secure payment
+          </Link>
+        </div>
       </div>
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button onClick={onBack} className="inline-flex h-12 items-center gap-2 text-sm text-muted-foreground hover:text-basalt"><ArrowLeft className="size-4" /> Back to extras</button>
-        <Link
-          href={checkoutHref}
-          aria-disabled={stale || total === null}
-          className={cn("inline-flex h-14 items-center justify-center gap-3 rounded-full bg-basalt px-8 text-sm font-medium tracking-wide text-stone transition-colors hover:bg-basalt-soft", (stale || total === null) && "pointer-events-none opacity-40")}
-        >
-          <Lock className="size-4" /> Continue to secure payment
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function ReviewItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="eyebrow text-muted-foreground">{label}</dt>
-      <dd className="mt-1.5 text-sm">{value}</dd>
     </div>
   );
 }
@@ -585,17 +503,6 @@ function Field({ label, value, onChange, placeholder, type = "text", className }
     <div className={cn("space-y-1.5", className)}>
       <Label htmlFor={id} className="text-xs">{label}</Label>
       <Input id={id} type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-10" />
-    </div>
-  );
-}
-
-function NavRow({ onBack, onNext, nextLabel }: { onBack: () => void; onNext: () => void; nextLabel: string }) {
-  return (
-    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <button onClick={onBack} className="inline-flex h-12 items-center gap-2 text-sm text-muted-foreground hover:text-basalt"><ArrowLeft className="size-4" /> Back to rooms</button>
-      <button onClick={onNext} className="inline-flex h-14 items-center justify-center gap-3 rounded-full bg-basalt px-8 text-sm font-medium tracking-wide text-stone hover:bg-basalt-soft">
-        {nextLabel} <ArrowRight className="size-4" />
-      </button>
     </div>
   );
 }

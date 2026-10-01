@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const bookingSteps = ["Dates", "Room & rate", "Extras", "Review", "Secure payment"] as const;
+export const bookingSteps = ["Dates", "Room & rate", "Extras", "Secure payment"] as const;
 
 export function StepIndicator({ current }: { current: number }) {
   return (
