@@ -1,0 +1,16 @@
+/* Flyers Hotel – hide Godo's "Your booking details" box when the booking page is
+   embedded on flyershotel.com (the site already shows the same summary beside it).
+   Requires the one-line script in embedded-summary.html, which adds .flyers-embed. */
+html.flyers-embed .b24-bookingdetails {
+  display: none !important;
+}
+html.flyers-embed #formbook .b24-guest-details-left {
+  width: 100% !important;
+  float: none !important;
+}
+/* Keep the grand total visible at every width (Godo shows this row on phones only). */
+html.flyers-embed #formbook .b24-repeatgrandtotal.hidden-sm,
+html.flyers-embed #formbook .b24-repeatgrandtotal.hidden-md,
+html.flyers-embed #formbook .b24-repeatgrandtotal.hidden-lg {
+  display: block !important;
+}
