@@ -41,8 +41,9 @@ npx netlify-cli serve --offline --port 8899   # runs the built site and function
 1. **Dates and guests**: from the hero, a room page, or `/book`.
 2. **Room and rate**: `/api/availability` asks Godo for live prices for every room and rate. Prices are never hardcoded, so they always match what Godo charges.
 3. **Extras**: the travel package (room, car storage and airport transfers) is a Godo rate, so adding it switches the rate and the live total updates. Transfer details are collected here and stored in `sessionStorage`.
-4. **Review**: a full summary with the live total.
-5. **Secure payment**: `/book/checkout` embeds Godo's guest-details and payment step in an iframe. The URL is prefilled with room, rate, dates, guests, language and currency, and the guest's transfer details sit beside the form with copy buttons. A "new tab" fallback is shown if the iframe doesn't load.
+4. **Secure payment**: `/book/checkout` embeds Godo's guest-details and payment step in an iframe. The URL is prefilled with room, rate, dates, guests, language and currency. Our summary and the guest's transfer details (with copy buttons) sit beside the form. A "new tab" fallback is shown if the iframe doesn't load.
+
+Godo repeats its own "Your booking details" box on the payment step. `docs/godo/` holds the two snippets the hotel adds in Godo's booking-page settings: custom CSS plus a header script. They hide that box only when the page is embedded, and they report the page height so the iframe sizes itself to fit (`checkout.tsx` listens for the `flyers:godo-height` message).
 
 Godo integration points (all in `src/lib`):
 
